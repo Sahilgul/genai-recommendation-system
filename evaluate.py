@@ -1,12 +1,13 @@
 import argparse
 import asyncio
 import re
+
+from agent.crs import stream_recommendation as agent_stream
 from data_loader import get_movie_name, load_all, normalize_title, resolve
 from few_shot.crs import stream_recommendation as few_shot_stream
-from agent.crs import stream_recommendation as agent_stream
-from rag.crs import stream_recommendation as rag_stream
-from rag.crs import load_index
 from multi_agent.crs import stream_recommendation as multi_agent_stream
+from rag.crs import load_index
+from rag.crs import stream_recommendation as rag_stream
 
 
 def extract_movie_titles(response, item_map, alias_map):

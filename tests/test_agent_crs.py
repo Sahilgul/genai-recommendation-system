@@ -1,7 +1,9 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 from langchain_core.messages import AIMessage, ToolMessage
-from agent.crs import _run_mcp_tool_loop, _mcp_to_groq_schema, MAX_TOOL_ROUNDS
+
+from agent.crs import MAX_TOOL_ROUNDS, _mcp_to_openai_schema, _run_mcp_tool_loop
 
 
 def _make_mcp_tool(name, description, properties=None, required=None):
@@ -24,7 +26,7 @@ def _make_tool_call_msg(name, args, tc_id="tc_1"):
     return AIMessage(content="", tool_calls=[{"name": name, "args": args, "id": tc_id}])
 
 
-class TestMcpToGroqSchema:
+class TestMcpToOpenAISchema:
     def test_converts_single_tool(self):
         mcp_tools = [_make_mcp_tool(
             "search_catalog",
@@ -32,7 +34,7 @@ class TestMcpToGroqSchema:
             {"query": {"type": "string", "description": "Search query"}},
             ["query"],
         )]
-        schemas = _mcp_to_groq_schema(mcp_tools)
+        schemas = _mcp_to_openai_schema(mcp_tools)
         assert len(schemas) == 1
         assert schemas[0]['type'] == 'function'
         assert schemas[0]['function']['name'] == 'search_catalog'
@@ -45,14 +47,14 @@ class TestMcpToGroqSchema:
             _make_mcp_tool("tool_b", "desc b"),
             _make_mcp_tool("tool_c", "desc c"),
         ]
-        schemas = _mcp_to_groq_schema(mcp_tools)
+        schemas = _mcp_to_openai_schema(mcp_tools)
         assert len(schemas) == 3
         names = [s['function']['name'] for s in schemas]
         assert names == ['tool_a', 'tool_b', 'tool_c']
 
     def test_handles_empty_schema(self):
         tool = _make_mcp_tool("get_user_taste", "Get taste", {}, [])
-        schemas = _mcp_to_groq_schema([tool])
+        schemas = _mcp_to_openai_schema([tool])
         assert schemas[0]['function']['parameters']['properties'] == {}
 
 

@@ -1,8 +1,12 @@
 import json
-from mcp_server import (
-    search_catalog, get_movie_details, get_user_taste, set_context, mcp,
-)
 
+from mcp_server import (
+    get_movie_details,
+    get_user_taste,
+    mcp,
+    search_catalog,
+    set_context,
+)
 
 MOCK_ITEM_MAP = {
     'A1': 'The Matrix',

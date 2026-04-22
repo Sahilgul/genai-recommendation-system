@@ -1,13 +1,15 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from data_loader import load_all, get_user_history_names, get_movie_name, search_movies
-from rag.crs import load_index
-from few_shot.crs import stream_recommendation as few_shot_stream
+
 from agent.crs import stream_recommendation as agent_stream
-from rag.crs import stream_recommendation as rag_stream
+from data_loader import get_movie_name, get_user_history_names, load_all, search_movies
+from few_shot.crs import stream_recommendation as few_shot_stream
 from multi_agent.crs import stream_recommendation as multi_agent_stream
+from rag.crs import load_index
+from rag.crs import stream_recommendation as rag_stream
 
 data = None
 

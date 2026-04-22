@@ -2,7 +2,8 @@ import html
 import json
 import re
 from collections import defaultdict
-from config import ITEM_MAP_PATH, USER_IDS_PATH, FINAL_DATA_PATH, CONVERSATION_PATH
+
+from config import CONVERSATION_PATH, FINAL_DATA_PATH, ITEM_MAP_PATH, USER_IDS_PATH
 
 
 def normalize_title(name):
@@ -40,7 +41,7 @@ def build_alias_map(item_map):
     alias_map = {}
     primary_names = {}
 
-    for core, entries in groups.items():
+    for entries in groups.values():
         best = min(entries, key=lambda x: len(clean_name(x[1])))
         primary = best[0]
         primary_names[primary] = clean_name(best[1])

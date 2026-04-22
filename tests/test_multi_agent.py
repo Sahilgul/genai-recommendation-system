@@ -1,18 +1,24 @@
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
 from langchain_core.messages import AIMessage
+
 from multi_agent.graph import (
-    analyze_preferences, search_catalog,
-    compose_recommendation, supervisor,
-    route_after_supervisor, route_to_supervisor_or_end,
-    build_graph, _get_likes_dislikes,
     CATALOG_TOOL_SCHEMAS,
+    _get_likes_dislikes,
+    analyze_preferences,
+    build_graph,
+    compose_recommendation,
+    route_after_supervisor,
+    route_to_supervisor_or_end,
+    search_catalog,
+    supervisor,
 )
 from multi_agent.prompts import (
-    SUPERVISOR_SYSTEM,
-    PREFERENCE_ANALYZER_SYSTEM,
     CATALOG_EXPERT_SYSTEM,
+    PREFERENCE_ANALYZER_SYSTEM,
     RECOMMENDATION_COMPOSER_SYSTEM,
+    SUPERVISOR_SYSTEM,
 )
 
 
@@ -185,17 +191,22 @@ class TestSearchCatalog:
 
 class TestComposeRecommendation:
     @pytest.mark.asyncio
-    async def test_produces_final_response(self):
-        with patch('multi_agent.graph.chat', new_callable=AsyncMock, return_value=_ai("I recommend Interstellar!")):
-            state = make_state(phase="compose")
-            state['taste_analysis'] = "Loves sci-fi"
-            state['candidates'] = "1. Interstellar - Great sci-fi"
-            state['history_names'] = ["The Matrix"]
-            state['likes'] = ["The Matrix"]
-            state['dislikes'] = ["Inception"]
-            result = await compose_recommendation(state)
-            assert result['final_response'] == "I recommend Interstellar!"
-            assert result['phase'] == 'done'
+    async def test_stages_composer_messages(self):
+        state = make_state(phase="compose")
+        state['taste_analysis'] = "Loves sci-fi"
+        state['candidates'] = "1. Interstellar - Great sci-fi"
+        state['history_names'] = ["The Matrix"]
+        state['likes'] = ["The Matrix"]
+        state['dislikes'] = ["Inception"]
+
+        result = await compose_recommendation(state)
+
+        assert result['phase'] == 'done'
+        assert isinstance(result['composer_messages'], list)
+        assert len(result['composer_messages']) >= 2
+        assert result['composer_messages'][0]['role'] == 'system'
+        assert "Loves sci-fi" in result['composer_messages'][0]['content']
+        assert "Interstellar" in result['composer_messages'][0]['content']
 
 
 class TestBuildGraph:
@@ -227,20 +238,53 @@ class TestPromptTemplates:
         assert '{user_message}' in RECOMMENDATION_COMPOSER_SYSTEM
 
 
+def _fake_astream(states):
+    async def _impl(_initial_state, **_kwargs):
+        for s in states:
+            yield s
+    return _impl
+
+
 class TestStreamRecommendation:
     @pytest.mark.asyncio
-    async def test_yields_characters(self):
-        with patch('multi_agent.crs._get_graph') as mock_get_graph:
+    async def test_yields_tokens_from_composer(self):
+        async def fake_stream(_messages):
+            for chunk in ["Watch ", "Interstellar", "!"]:
+                yield chunk
+
+        composer_msgs = [
+            {"role": "system", "content": "compose now"},
+            {"role": "user", "content": "sci-fi"},
+        ]
+        final_state = {
+            "composer_messages": composer_msgs,
+            "phase": "done",
+        }
+
+        with patch('multi_agent.crs._get_graph') as mock_get_graph, \
+             patch('multi_agent.crs.stream_chat', side_effect=fake_stream):
             mock_graph = AsyncMock()
-            mock_graph.ainvoke = AsyncMock(return_value={
-                "final_response": "Watch Interstellar!",
-                "phase": "done",
-            })
+            mock_graph.astream = _fake_astream([final_state])
             mock_get_graph.return_value = mock_graph
 
             from multi_agent.crs import stream_recommendation
             tokens = []
-            async for char in stream_recommendation(make_profile(), make_data(), [], "sci-fi"):
-                tokens.append(char)
+            async for chunk in stream_recommendation(make_profile(), make_data(), [], "sci-fi"):
+                tokens.append(chunk)
 
-            assert ''.join(tokens) == "Watch Interstellar!"
+            joined = ''.join(tokens)
+            assert "Watch Interstellar!" in joined
+
+    @pytest.mark.asyncio
+    async def test_yields_error_when_composer_messages_missing(self):
+        with patch('multi_agent.crs._get_graph') as mock_get_graph:
+            mock_graph = AsyncMock()
+            mock_graph.astream = _fake_astream([{"phase": "done"}])
+            mock_get_graph.return_value = mock_graph
+
+            from multi_agent.crs import stream_recommendation
+            tokens = []
+            async for chunk in stream_recommendation(make_profile(), make_data(), [], "sci-fi"):
+                tokens.append(chunk)
+
+            assert "ERROR" in ''.join(tokens)

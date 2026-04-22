@@ -1,5 +1,6 @@
-from few_shot.prompts import get_user_likes_dislikes, build_prompt as build_few_shot_prompt
 from agent.prompts import build_prompt as build_agent_prompt
+from few_shot.prompts import build_prompt as build_few_shot_prompt
+from few_shot.prompts import get_user_likes_dislikes
 from rag.prompts import build_prompt as build_rag_prompt
 
 

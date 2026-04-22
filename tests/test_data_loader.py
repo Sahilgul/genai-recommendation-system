@@ -1,9 +1,15 @@
 import pytest
-from data_loader import (
-    normalize_title, clean_name, build_alias_map, resolve,
-    get_movie_name, get_user_history_names, search_movies, load_all,
-)
 
+from data_loader import (
+    build_alias_map,
+    clean_name,
+    get_movie_name,
+    get_user_history_names,
+    load_all,
+    normalize_title,
+    resolve,
+    search_movies,
+)
 
 # ── normalize_title ──
 

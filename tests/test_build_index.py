@@ -1,4 +1,10 @@
-from build_index import _build_movie_to_convos, _extract_snippets, build_enriched_docs, MAX_SNIPPETS, MAX_DOC_CHARS
+from build_index import (
+    MAX_DOC_CHARS,
+    MAX_SNIPPETS,
+    _build_movie_to_convos,
+    _extract_snippets,
+    build_enriched_docs,
+)
 
 
 def make_data():

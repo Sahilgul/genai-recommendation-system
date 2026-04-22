@@ -1,26 +1,34 @@
-import os
 from langchain_qwq import ChatQwen
 from openai import AsyncOpenAI, OpenAI
-from config import QWEN_MODEL, EMBEDDING_BASE_URL, EMBEDDING_MODEL
 
-llm = ChatQwen(
-    model="qwen-plus",
-    dashscope_api_key=os.environ["ALIBABA_API_KEY"],
-    temperature=1,
-)
+from config import EMBEDDING_BASE_URL, EMBEDDING_MODEL, QWEN_MODEL
 
-embed_client = AsyncOpenAI(base_url=EMBEDDING_BASE_URL, api_key="lm-studio")
-embed_client_sync = OpenAI(base_url=EMBEDDING_BASE_URL, api_key="lm-studio")
+_llms = {
+    'router':   ChatQwen(model=QWEN_MODEL, temperature=0,   max_tokens=32),
+    'analyzer': ChatQwen(model=QWEN_MODEL, temperature=0.3, max_tokens=512),
+    'tool':     ChatQwen(model=QWEN_MODEL, temperature=0.2, max_tokens=2048),
+    'writer':   ChatQwen(model=QWEN_MODEL, temperature=0.8, max_tokens=2048),
+}
+
+llm = _llms['writer']
+
+embed_client = AsyncOpenAI(base_url=EMBEDDING_BASE_URL, api_key='lm-studio')
+embed_client_sync = OpenAI(base_url=EMBEDDING_BASE_URL, api_key='lm-studio')
 embed_model = EMBEDDING_MODEL
 
 
-async def chat(messages):
-    return await llm.ainvoke(messages)
+async def chat(messages, role='analyzer'):
+    return await _llms[role].ainvoke(messages)
 
 
-async def chat_with_tools(messages, tools):
-    bound = llm.bind(tools=tools)
-    return await bound.ainvoke(messages)
+async def stream_chat(messages, role='writer'):
+    async for chunk in _llms[role].astream(messages):
+        if chunk.content:
+            yield chunk.content
+
+
+async def chat_with_tools(messages, tools, role='tool'):
+    return await _llms[role].bind(tools=tools).ainvoke(messages)
 
 
 async def embed(texts):

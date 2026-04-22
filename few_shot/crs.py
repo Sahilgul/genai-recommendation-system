@@ -1,7 +1,8 @@
 import random
-from llm import chat
+
 from data_loader import resolve
 from few_shot.prompts import build_prompt
+from llm import stream_chat
 
 
 def find_few_shot_examples(profile, data, n=2):
@@ -52,6 +53,5 @@ async def stream_recommendation(profile, data, chat_history, user_message):
     messages.extend(chat_history)
     messages.append({"role": "user", "content": user_message})
 
-    response = await chat(messages)
-    for word in response.content.split(" "):
-        yield word + " "
+    async for token in stream_chat(messages):
+        yield token

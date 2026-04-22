@@ -2,12 +2,14 @@ import re
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import psutil
+
 import chromadb
-from chromadb import EmbeddingFunction, Documents, Embeddings
+import psutil
+from chromadb import Documents, EmbeddingFunction, Embeddings
+
 from config import BASE_DIR
-from llm import embed_sync
 from data_loader import load_all, resolve
+from llm import embed_sync
 
 CHROMA_DIR = str(BASE_DIR / "chroma_db")
 BATCH_SIZE = 32

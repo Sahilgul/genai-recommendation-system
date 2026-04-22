@@ -1,8 +1,10 @@
-import os
 import json
+import os
+
 from mcp.server.fastmcp import FastMCP
-from tools import _get_likes_dislikes, _extract_keywords, _find_movie_stats
-from data_loader import search_movies, get_user_history_names, load_all
+
+from data_loader import get_user_history_names, load_all, search_movies
+from tools import _extract_keywords, _find_movie_stats, _get_likes_dislikes
 
 mcp = FastMCP("MovieCRS")
 

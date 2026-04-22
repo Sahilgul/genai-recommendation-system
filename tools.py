@@ -1,10 +1,14 @@
 import json
 import re
-from data_loader import (
-    search_movies, get_movie_name, get_user_history_names,
-    resolve, clean_name, normalize_title,
-)
 
+from data_loader import (
+    clean_name,
+    get_movie_name,
+    get_user_history_names,
+    normalize_title,
+    resolve,
+    search_movies,
+)
 
 TOOL_SCHEMAS = [
     {
@@ -12,15 +16,19 @@ TOOL_SCHEMAS = [
         "function": {
             "name": "search_catalog",
             "description": (
-                "Search the movie catalog by keyword, genre, actor, or title. "
-                "Returns up to `limit` matching movie titles."
+                "Substring search of movie TITLES only. This is NOT semantic search "
+                "and does NOT understand genres, moods, actors, or themes. Pass words "
+                "or fragments that literally appear in movie titles "
+                "(e.g. 'star', 'matrix', 'alien', 'godfather'). "
+                "Generic terms like 'sci-fi', 'thriller', 'dark', 'acclaimed' will "
+                "return empty results. If unsure, call get_user_taste first."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "Search query (e.g. 'sci-fi', 'comedy', 'Tom Hanks', 'Matrix')",
+                        "description": "A literal title fragment (e.g. 'matrix', 'star wars', 'alien')",
                     },
                     "limit": {
                         "type": "integer",

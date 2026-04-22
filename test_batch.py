@@ -1,5 +1,7 @@
 import time
+
 import psutil
+
 from llm import embed_sync
 
 sample_docs = [

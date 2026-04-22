@@ -1,8 +1,9 @@
 import chromadb
-from chromadb import EmbeddingFunction, Documents, Embeddings
+from chromadb import Documents, EmbeddingFunction, Embeddings
+
 from config import BASE_DIR
-from llm import embed_sync, chat
 from data_loader import resolve
+from llm import embed_sync, stream_chat
 from rag.prompts import build_prompt
 
 CHROMA_DIR = str(BASE_DIR / "chroma_db")
@@ -42,7 +43,7 @@ def retrieve(query, profile, data, n_results=15):
     results = collection.query(query_texts=[query], n_results=n_results + len(history_asins))
 
     retrieved = []
-    for asin, name, dist in zip(results['ids'][0], results['documents'][0], results['distances'][0]):
+    for asin, name, dist in zip(results['ids'][0], results['documents'][0], results['distances'][0], strict=False):
         if asin not in history_asins:
             retrieved.append({"asin": asin, "title": name, "score": round(1 - dist, 4)})
         if len(retrieved) >= n_results:
@@ -59,6 +60,5 @@ async def stream_recommendation(profile, data, chat_history, user_message):
     messages.extend(chat_history)
     messages.append({"role": "user", "content": user_message})
 
-    response = await chat(messages)
-    for word in response.content.split(" "):
-        yield word + " "
+    async for token in stream_chat(messages):
+        yield token

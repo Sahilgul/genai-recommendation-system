@@ -1,16 +1,17 @@
 import json
 from typing import TypedDict
-from langgraph.graph import StateGraph, END
+
 from langchain_core.messages import ToolMessage
-from llm import chat, chat_with_tools
+from langgraph.graph import END, StateGraph
+
 from data_loader import get_movie_name, get_user_history_names
-from tools import TOOL_SCHEMAS, execute_tool
+from llm import chat, chat_with_tools
 from multi_agent.prompts import (
-    SUPERVISOR_SYSTEM,
-    PREFERENCE_ANALYZER_SYSTEM,
     CATALOG_EXPERT_SYSTEM,
+    PREFERENCE_ANALYZER_SYSTEM,
     RECOMMENDATION_COMPOSER_SYSTEM,
 )
+from tools import TOOL_SCHEMAS, execute_tool
 
 CATALOG_TOOL_SCHEMAS = [s for s in TOOL_SCHEMAS if s['function']['name'] in ('search_catalog', 'get_movie_details')]
 MAX_TOOL_ROUNDS = 3
@@ -28,6 +29,7 @@ class AgentState(TypedDict):
     catalog_results: str
     candidates: str
     final_response: str
+    composer_messages: list
     phase: str
 
 
@@ -50,23 +52,7 @@ async def supervisor(state):
     if not likes and not dislikes:
         likes, dislikes = _get_likes_dislikes(profile, item_map, alias_map)
 
-    prompt = SUPERVISOR_SYSTEM.format(
-        user_message=state['user_message'],
-        taste_analysis=state.get('taste_analysis', 'Not yet analyzed.'),
-        candidates=state.get('candidates', 'No candidates yet.'),
-        history_count=len(history_names),
-        likes_count=len(likes),
-    )
-
-    messages = [{"role": "system", "content": prompt}]
-    response = await chat(messages)
-    decision = response.content.strip().lower()
-
-    if "compose" in decision and state.get('candidates'):
-        next_phase = "compose"
-    elif "search" in decision and state.get('taste_analysis'):
-        next_phase = "search"
-    elif state.get('candidates') and state.get('taste_analysis'):
+    if state.get('candidates') and state.get('taste_analysis'):
         next_phase = "compose"
     elif state.get('taste_analysis'):
         next_phase = "search"
@@ -99,7 +85,7 @@ async def analyze_preferences(state):
     )
 
     messages = [{"role": "system", "content": prompt}]
-    response = await chat(messages)
+    response = await chat(messages, role="analyzer")
 
     return {
         "taste_analysis": response.content,
@@ -137,7 +123,7 @@ async def search_catalog(state):
             tool_log.append(f"[{tc['name']}({json.dumps(tc['args'])})] → {result}")
             messages.append(ToolMessage(content=result, tool_call_id=tc["id"]))
 
-    final_resp = await chat(messages)
+    final_resp = await chat(messages, role="analyzer")
 
     return {
         "candidates": final_resp.content,
@@ -146,7 +132,7 @@ async def search_catalog(state):
     }
 
 
-async def compose_recommendation(state):
+def build_composer_messages(state):
     prompt = RECOMMENDATION_COMPOSER_SYSTEM.format(
         history=json.dumps(state.get('history_names', []), indent=2),
         likes=json.dumps(state.get('likes', []), indent=2),
@@ -155,15 +141,15 @@ async def compose_recommendation(state):
         candidates=state.get('candidates', ''),
         user_message=state['user_message'],
     )
-
     messages = [{"role": "system", "content": prompt}]
     messages.extend(state.get('chat_history', []))
     messages.append({"role": "user", "content": state['user_message']})
+    return messages
 
-    response = await chat(messages)
 
+async def compose_recommendation(state):
     return {
-        "final_response": response.content,
+        "composer_messages": build_composer_messages(state),
         "phase": "done",
     }
 

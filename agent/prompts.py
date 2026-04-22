@@ -1,6 +1,6 @@
 import json
-from data_loader import get_movie_name, get_user_history_names
 
+from data_loader import get_movie_name, get_user_history_names
 
 AGENT_SYSTEM = """You are a movie recommendation agent with access to tools.
 Use your tools to search the catalog, look up movie details, and analyze user taste before making recommendations.

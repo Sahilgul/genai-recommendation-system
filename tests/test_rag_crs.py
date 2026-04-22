@@ -1,6 +1,7 @@
-from rag.crs import retrieve, LMStudioEmbedding
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import rag.crs as rag_crs_module
+from rag.crs import LMStudioEmbedding, retrieve
 
 
 def make_profile():

@@ -1,6 +1,5 @@
 from data_loader import get_movie_name, get_user_history_names
 
-
 RAG_SYSTEM = """You are a movie recommendation assistant powered by semantic retrieval.
 You recommend movies based on the user's profile AND movies retrieved from our catalog that are semantically similar to the user's request.
 

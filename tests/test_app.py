@@ -1,7 +1,7 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from fastapi.testclient import TestClient
+from unittest.mock import MagicMock, patch
 
+import pytest
+from fastapi.testclient import TestClient
 
 MOCK_DATA = {
     'item_map': {'A1': 'The Matrix', 'A2': 'Inception', 'A3': 'Interstellar'},

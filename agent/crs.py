@@ -1,16 +1,18 @@
 import sys
 from pathlib import Path
+
+from langchain_core.messages import ToolMessage
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from langchain_core.messages import ToolMessage
-from llm import chat_with_tools, chat
-from agent.prompts import build_prompt
 
-MAX_TOOL_ROUNDS = 5
+from agent.prompts import build_prompt
+from llm import chat_with_tools, stream_chat
+
+MAX_TOOL_ROUNDS = 3
 MCP_SERVER_PATH = str(Path(__file__).parent.parent / "mcp_server.py")
 
 
-def _mcp_to_groq_schema(mcp_tools):
+def _mcp_to_openai_schema(mcp_tools):
     schemas = []
     for t in mcp_tools:
         props = {}
@@ -36,9 +38,9 @@ def _mcp_to_groq_schema(mcp_tools):
     return schemas
 
 
-async def _run_mcp_tool_loop(session, groq_schemas, messages):
+async def _run_mcp_tool_loop(session, tool_schemas, messages):
     for _ in range(MAX_TOOL_ROUNDS):
-        response = await chat_with_tools(messages, groq_schemas)
+        response = await chat_with_tools(messages, tool_schemas)
 
         if not response.tool_calls:
             return messages
@@ -73,10 +75,20 @@ async def stream_recommendation(profile, data, chat_history, user_message):
             await session.initialize()
 
             mcp_tools = await session.list_tools()
-            groq_schemas = _mcp_to_groq_schema(mcp_tools.tools)
+            tool_schemas = _mcp_to_openai_schema(mcp_tools.tools)
 
-            messages = await _run_mcp_tool_loop(session, groq_schemas, messages)
+            messages = await _run_mcp_tool_loop(session, tool_schemas, messages)
 
-    response = await chat(messages)
-    for word in response.content.split(" "):
-        yield word + " "
+    messages.append({
+        "role": "user",
+        "content": (
+            "You have gathered enough information from the tools above. "
+            "Now write the final movie recommendation directly. "
+            "Do not propose any more searches or tool calls. "
+            "Just give the user 2-3 specific movie titles with a brief reason for each, "
+            "tied to their watch history."
+        ),
+    })
+
+    async for token in stream_chat(messages):
+        yield token

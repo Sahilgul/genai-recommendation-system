@@ -4,7 +4,7 @@ A conversational recommender for movies, built four different ways so the
 trade-offs between them are obvious. Backed by FastAPI with token streaming,
 ChromaDB for the RAG index, and LangSmith for tracing.
 
-Dataset: LLM-Redial (Movies split) — available on Kaggle.
+Dataset: LLM-Redial (Movies split) — provided as part of the technical brief.
 
 ## Approaches
 
@@ -51,8 +51,7 @@ pip install -r requirements.txt
 cp .env.example .env          # then fill in keys
 ```
 
-You also need the dataset. Download the LLM-Redial Movies split from Kaggle
-and put the `Movie/` folder at:
+You also need the dataset. Place the LLM-Redial `Movie/` folder at:
 
 ```
 genai-recommendation-system/LLM_Redial/Movie/
